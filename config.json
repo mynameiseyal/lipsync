@@ -1,0 +1,47 @@
+{
+  "project_settings": {
+    "name": "Multi-Speaker Lip-Sync Generator",
+    "version": "1.0.0",
+    "author": "AI Video Creator"
+  },
+  "paths": {
+    "wav2lip_repo": "models/Wav2Lip",
+    "wav2lip_checkpoint": "models/Wav2Lip/checkpoints/wav2lip_gan.pth",
+    "face_detection_model": "models/face_detection.pth",
+    "temp_dir": "temp",
+    "output_dir": "output"
+  },
+  "processing": {
+    "max_resolution": [1920, 1080],
+    "default_resolution": [480, 360],
+    "default_fps": 25,
+    "audio_sample_rate": 22050,
+    "face_padding": [10, 10, 10, 10],
+    "face_detection_threshold": 0.8
+  },
+  "tts_settings": {
+    "default_language": "en",
+    "default_voice": "tts_models/en/ljspeech/tacotron2-DDC",
+    "available_voices": [
+      "tts_models/en/ljspeech/tacotron2-DDC",
+      "tts_models/en/vctk/vits", 
+      "tts_models/en/ljspeech/glow-tts",
+      "tts_models/en/sam/tacotron-DDC"
+    ],
+    "speed_factor": 1.0,
+    "volume_factor": 1.0
+  },
+  "background_settings": {
+    "removal_model": "u2net",
+    "blur_background": false,
+    "background_opacity": 1.0,
+    "speaker_size_ratio": 0.6,
+    "composition_style": "overlay"
+  },
+  "advanced": {
+    "gpu_acceleration": true,
+    "batch_processing": true,
+    "cleanup_temp": true,
+    "debug_mode": false
+  }
+} 

@@ -1,0 +1,99 @@
+# Image files
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tiff
+*.webp
+
+# Model files (too large for GitHub)
+*.pth
+*.pt
+*.bin
+*.onnx
+*.h5
+*.pkl
+*.safetensors
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Temporary files and output
+temp/
+output/
+*.tmp
+*.temp
+*.log
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Downloaded models and large files
+models/
+checkpoints/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/ 
