@@ -14,10 +14,17 @@ from pydub import AudioSegment
 from tqdm import tqdm
 
 class TTSGenerator:
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json", gpu_manager=None):
         """Initialize TTS Generator with configuration."""
         self.config = self.load_config(config_path)
         self.setup_logging()
+        self.gpu_manager = gpu_manager
+        
+        # Note: gTTS doesn't use GPU, but neural TTS models could benefit from GPU
+        if gpu_manager and gpu_manager.is_gpu_available:
+            self.logger.info("[GPU] GPU available for neural TTS models")
+        else:
+            self.logger.info("[CPU] Using CPU for TTS generation")
         
     def load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file."""

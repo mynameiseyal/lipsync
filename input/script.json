@@ -5,8 +5,8 @@
   "segments": [
     {
       "id": 1,
-      "speaker": "trump.jpeg",
-      "background": "eyal.jpg", 
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg", 
       "text": "Alright, folks, we've got Eyal with us. He's the QA Manager—very hardworking, they tell me. Not the fastest guy in the world—he's not breaking the sound barrier, okay?—but he gets where he needs to go. Sometimes he's fast, sometimes he's… you know, not so fast. It happens. I know all about that.",
       "voice_model": "tts_models/en/ljspeech/tacotron2-DDC",
       "speaker_position": "center",
@@ -14,8 +14,8 @@
     },
     {
       "id": 2,
-      "speaker": "trump.jpeg",
-      "background": "eyal.jpg",
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
       "text": "Now, Eyal likes things organized—maybe a little too organized. He's got folders, labels, checklists—I've seen less paperwork in my lawsuits, believe me. But he does his best, and that's what counts. Some people say, \"Sir, can you find anything on his desk?\" Well, maybe, maybe not. But at least he tries.",
       "voice_model": "tts_models/en/ljspeech/tacotron2-DDC",
       "speaker_position": "center",
@@ -23,8 +23,8 @@
     },
     {
       "id": 3,
-      "speaker": "trump.jpeg",
-      "background": "eyal.jpg",
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
       "text": "But let's talk about his team—amazing people, truly incredible! When Eyal wants his team to keep up, guess what? They actually do. Nobody's slacking. It's like The Apprentice, but nobody gets fired! If there's a bug, they hunt it down faster than the FBI. I'm telling you, folks, they're the real stars. I wish my cabinet worked that well.",
       "voice_model": "tts_models/en/ljspeech/tacotron2-DDC",
       "speaker_position": "center",
@@ -32,8 +32,8 @@
     },
     {
       "id": 4,
-      "speaker": "trump.jpeg",
-      "background": "eyal.jpg",
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
       "text": "And look, sometimes the software is perfect, sometimes it's a little bit of a disaster. \"It is what it is,\" as I always say. But with this team, you're in good hands. We're not building walls here, we're building quality. And nobody builds quality like this group—nobody, believe me!",
       "voice_model": "tts_models/en/ljspeech/tacotron2-DDC",
       "speaker_position": "center",
@@ -41,8 +41,8 @@
     },
     {
       "id": 5,
-      "speaker": "trump.jpeg",
-      "background": "eyal.jpg",
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
       "text": "Thank you, Eyal, thank you team, you're making QA great again—one test at a time!",
       "voice_model": "tts_models/en/ljspeech/tacotron2-DDC",
       "speaker_position": "center",

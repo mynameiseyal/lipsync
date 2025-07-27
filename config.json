@@ -13,23 +13,27 @@
   },
   "processing": {
     "max_resolution": [1920, 1080],
-    "default_resolution": [480, 360],
+    "default_resolution": [720, 480],
     "default_fps": 25,
     "audio_sample_rate": 22050,
     "face_padding": [10, 10, 10, 10],
     "face_detection_threshold": 0.8
   },
   "tts_settings": {
+    "engine": "neural",
+    "fallback_engine": "gtts",
     "default_language": "en",
-    "default_voice": "tts_models/en/ljspeech/tacotron2-DDC",
-    "available_voices": [
+    "neural_model": "tts_models/en/ljspeech/vits",
+    "available_models": [
+      "tts_models/en/ljspeech/vits",
       "tts_models/en/ljspeech/tacotron2-DDC",
       "tts_models/en/vctk/vits", 
       "tts_models/en/ljspeech/glow-tts",
       "tts_models/en/sam/tacotron-DDC"
     ],
     "speed_factor": 1.0,
-    "volume_factor": 1.0
+    "volume_factor": 1.0,
+    "gpu_batch_size": 8
   },
   "background_settings": {
     "removal_model": "u2net",
@@ -38,10 +42,34 @@
     "speaker_size_ratio": 0.6,
     "composition_style": "overlay"
   },
+  "gpu_settings": {
+    "enabled": true,
+    "device": "auto",
+    "memory_fraction": 0.8,
+    "allow_growth": true,
+    "mixed_precision": true,
+    "batch_size": 4,
+    "num_workers": 4,
+    "pin_memory": true,
+    "fallback_to_cpu": true,
+    "optimization_level": "O1"
+  },
+  "video_encoding": {
+    "gpu_codec": "h264_nvenc",
+    "cpu_codec": "libx264", 
+    "gpu_preset": "fast",
+    "cpu_preset": "medium",
+    "max_bitrate": "8000k",
+    "buffer_size": "10000k",
+    "cpu_threads": 4
+  },
   "advanced": {
     "gpu_acceleration": true,
     "batch_processing": true,
     "cleanup_temp": true,
-    "debug_mode": false
+    "debug_mode": false,
+    "memory_efficient": true,
+    "use_cuda_kernels": true,
+    "async_processing": true
   }
 } 

@@ -17,6 +17,7 @@ from processing.tts_generator import TTSGenerator
 from processing.lipsync_engine import LipSyncEngine
 from processing.background_composer import BackgroundComposer
 from processing.video_assembler import VideoAssembler
+from processing.gpu_utils import setup_gpu_environment
 
 class MultiSpeakerPipeline:
     def __init__(self, config_path: str = "config.json"):
@@ -24,11 +25,15 @@ class MultiSpeakerPipeline:
         self.config = self.load_config(config_path)
         self.setup_logging()
         
-        # Initialize all components
-        self.tts_generator = TTSGenerator(config_path)
-        self.lipsync_engine = LipSyncEngine(config_path)
-        self.background_composer = BackgroundComposer(config_path)
-        self.video_assembler = VideoAssembler(config_path)
+        # Initialize GPU environment
+        self.gpu_manager = setup_gpu_environment(self.config)
+        self.logger.info(f"[INIT] Device initialized: {self.gpu_manager.get_device_info()}")
+        
+        # Initialize all components with GPU manager
+        self.tts_generator = TTSGenerator(config_path, self.gpu_manager)
+        self.lipsync_engine = LipSyncEngine(config_path, self.gpu_manager)
+        self.background_composer = BackgroundComposer(config_path, self.gpu_manager)
+        self.video_assembler = VideoAssembler(config_path, self.gpu_manager)
         
         self.logger.info("Multi-Speaker Pipeline initialized")
         
@@ -135,7 +140,7 @@ class MultiSpeakerPipeline:
             start_time = time.time()
             skip_steps = skip_steps or []
             
-            self.logger.info("🎬 Starting Multi-Speaker Video Creation Pipeline")
+            self.logger.info("[PIPELINE] Starting Multi-Speaker Video Creation Pipeline")
             self.logger.info(f"Script: {script_path}")
             
             # Step 0: Validate inputs
@@ -192,6 +197,9 @@ class MultiSpeakerPipeline:
             if self.config['advanced'].get('cleanup_temp', True):
                 self.logger.info("🧹 Cleaning up temporary files...")
                 self.video_assembler.cleanup_temp_files()
+            
+            # GPU cleanup
+            self.gpu_manager.cleanup()
             
             return True
             
@@ -295,6 +303,8 @@ Examples:
   python main.py --output my_video.mp4    # Custom output name
   python main.py --skip tts,lipsync       # Skip TTS and lip-sync steps
   python main.py --progress               # Show progress only
+  python main.py --gpu-info               # Show GPU information
+  python main.py --validate-only          # Validate inputs only
         """
     )
     
@@ -310,6 +320,8 @@ Examples:
                        help='Show progress status and exit')
     parser.add_argument('--validate-only', action='store_true',
                        help='Only validate inputs and exit')
+    parser.add_argument('--gpu-info', action='store_true',
+                       help='Show GPU information and exit')
     
     args = parser.parse_args()
     
@@ -317,8 +329,22 @@ Examples:
     try:
         pipeline = MultiSpeakerPipeline(args.config)
     except Exception as e:
-        print(f"❌ Failed to initialize pipeline: {e}")
+        print(f"[ERROR] Failed to initialize pipeline: {e}")
         sys.exit(1)
+    
+    # Handle GPU info check
+    if args.gpu_info:
+        gpu_info = pipeline.gpu_manager.get_device_info()
+        print("\n[GPU] GPU Information:")
+        print(f"   Device: {gpu_info['device']}")
+        print(f"   Name: {gpu_info['device_name']}")
+        print(f"   GPU Available: {'Yes' if gpu_info['is_gpu'] else 'No'}")
+        print(f"   CUDA Available: {'Yes' if gpu_info['cuda_available'] else 'No'}")
+        if gpu_info['is_gpu']:
+            print(f"   Memory: {gpu_info['memory_available'] / 1e9:.1f} GB")
+            allocated, cached = pipeline.gpu_manager.get_memory_usage()
+            print(f"   Memory Used: {allocated:.1f} GB allocated, {cached:.1f} GB cached")
+        return
     
     # Handle progress check
     if args.progress:
@@ -328,9 +354,9 @@ Examples:
     # Handle validation only
     if args.validate_only:
         if pipeline.validate_inputs(args.script):
-            print("✅ All inputs are valid")
+            print("[SUCCESS] All inputs are valid")
         else:
-            print("❌ Input validation failed")
+            print("[ERROR] Input validation failed")
             sys.exit(1)
         return
     
@@ -340,22 +366,22 @@ Examples:
         skip_steps = [step.strip() for step in args.skip.split(',')]
     
     # Run the pipeline
-    print("🎬 Starting Multi-Speaker Lip-Sync Video Generation...")
-    print(f"📄 Script: {args.script}")
+    print("[LIPSYNC] Starting Multi-Speaker Lip-Sync Video Generation...")
+    print(f"[SCRIPT] Script: {args.script}")
     if args.output:
-        print(f"📹 Output: {args.output}")
+        print(f"[OUTPUT] Output: {args.output}")
     if skip_steps:
-        print(f"⏭️  Skipping: {', '.join(skip_steps)}")
+        print(f"[SKIP] Skipping: {', '.join(skip_steps)}")
     print()
     
     success = pipeline.create_video(args.script, args.output, skip_steps)
     
     if success:
-        print("\n🎉 Video creation completed successfully!")
-        print(f"📁 Check the 'output' folder for your final video.")
+        print("\n[SUCCESS] Video creation completed successfully!")
+        print(f"[OUTPUT] Check the 'output' folder for your final video.")
     else:
-        print("\n❌ Video creation failed!")
-        print("📋 Check the pipeline.log file for detailed error information.")
+        print("\n[ERROR] Video creation failed!")
+        print("[INFO] Check the pipeline.log file for detailed error information.")
         sys.exit(1)
 
 

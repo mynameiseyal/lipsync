@@ -11,16 +11,18 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import cv2
 import numpy as np
-from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, vfx
+from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, vfx
 from PIL import Image, ImageFilter, ImageEnhance
 from rembg import remove
 from tqdm import tqdm
 
 class BackgroundComposer:
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json", gpu_manager=None):
         """Initialize Background Composer with configuration."""
         self.config = self.load_config(config_path)
         self.setup_logging()
+        self.gpu_manager = gpu_manager
+        self.device = gpu_manager.get_device() if gpu_manager else None
         
     def load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file."""
@@ -263,7 +265,7 @@ class BackgroundComposer:
     
     def remove_video_background(self, video_clip: VideoFileClip) -> VideoFileClip:
         """
-        Remove background from video using rembg.
+        Remove background from video using rembg with GPU acceleration.
         
         Args:
             video_clip: Input video clip
@@ -272,21 +274,69 @@ class BackgroundComposer:
             Video clip with background removed
         """
         try:
-            def remove_bg_frame(get_frame, t):
-                frame = get_frame(t)
-                # Convert frame to PIL Image
-                pil_frame = Image.fromarray((frame * 255).astype(np.uint8))
-                # Remove background
-                removed_bg = remove(pil_frame)
-                # Convert back to numpy array
-                return np.array(removed_bg) / 255.0
+            # Initialize rembg with GPU/CPU based on availability
+            from rembg import remove, new_session
             
-            # Apply background removal to all frames
-            bg_removed_clip = video_clip.fl(remove_bg_frame)
+            # Select model based on config
+            model_name = self.config['background_settings'].get('removal_model', 'u2net')
+            
+            # Create session with GPU/CPU device
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                self.logger.info(f"[GPU] Using GPU for background removal ({model_name})")
+                
+                # Monitor GPU memory
+                self.gpu_manager.monitor_memory("before background removal")
+                
+                # Create optimized session for GPU
+                session = new_session(model_name, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+                
+                # Process with GPU batching for efficiency
+                def remove_bg_frame_gpu(get_frame, t):
+                    frame = get_frame(t)
+                    pil_frame = Image.fromarray((frame * 255).astype(np.uint8))
+                    
+                    # Use GPU-accelerated background removal
+                    removed_bg = remove(pil_frame, session=session)
+                    return np.array(removed_bg) / 255.0
+                
+                bg_removed_clip = video_clip.fl(remove_bg_frame_gpu)
+                
+                # Monitor GPU memory after processing
+                self.gpu_manager.monitor_memory("after background removal")
+                
+            else:
+                self.logger.info(f"[CPU] Using CPU for background removal ({model_name})")
+                
+                # Create CPU session
+                session = new_session(model_name, providers=['CPUExecutionProvider'])
+                
+                def remove_bg_frame_cpu(get_frame, t):
+                    frame = get_frame(t)
+                    pil_frame = Image.fromarray((frame * 255).astype(np.uint8))
+                    removed_bg = remove(pil_frame, session=session)
+                    return np.array(removed_bg) / 255.0
+                
+                bg_removed_clip = video_clip.fl(remove_bg_frame_cpu)
+            
             return bg_removed_clip
             
         except Exception as e:
             self.logger.warning(f"Background removal failed, using original video: {e}")
+            
+            # Fallback: try with basic CPU processing
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                self.logger.info("[CPU] Falling back to CPU for background removal")
+                try:
+                    def remove_bg_frame_fallback(get_frame, t):
+                        frame = get_frame(t)
+                        pil_frame = Image.fromarray((frame * 255).astype(np.uint8))
+                        removed_bg = remove(pil_frame)
+                        return np.array(removed_bg) / 255.0
+                    
+                    return video_clip.fl(remove_bg_frame_fallback)
+                except Exception as fallback_error:
+                    self.logger.warning(f"CPU fallback also failed: {fallback_error}")
+            
             return video_clip
     
     def apply_green_screen_effect(self, video_clip: VideoFileClip) -> VideoFileClip:

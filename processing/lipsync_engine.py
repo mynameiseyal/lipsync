@@ -16,12 +16,18 @@ from tqdm import tqdm
 import shutil
 
 class LipSyncEngine:
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json", gpu_manager=None):
         """Initialize Lip-Sync Engine with configuration."""
         self.config = self.load_config(config_path)
         self.setup_logging()
-        self.setup_wav2lip()
+        self.gpu_manager = gpu_manager
+        self.device = gpu_manager.get_device() if gpu_manager else torch.device('cpu')
+        self.wav2lip_ready = self.setup_wav2lip()
         
+        if not self.wav2lip_ready:
+            self.logger.warning("⚠️  Wav2Lip is not ready. Some features will be unavailable.")
+            self.logger.info("Please follow the instructions above to download the required model.")
+    
     def load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file."""
         with open(config_path, 'r') as f:
@@ -42,11 +48,31 @@ class LipSyncEngine:
         
         # Check if Wav2Lip is available
         if not self.wav2lip_path.exists():
-            self.logger.warning("Wav2Lip repository not found. Run setup script first.")
+            self.logger.error("Wav2Lip repository not found. Please run setup script first:")
+            self.logger.error("python setup.py")
+            return False
         
         # Check if models are available
         if not self.checkpoint_path.exists():
-            self.logger.warning("Wav2Lip checkpoint not found. Run setup script first.")
+            self.logger.error("Wav2Lip checkpoint not found!")
+            self.logger.error("Please download the model from:")
+            self.logger.error("https://github.com/Rudrabha/Wav2Lip#getting-the-weights")
+            self.logger.error(f"Save it to: {self.checkpoint_path}")
+            # Create a placeholder file to avoid immediate crashes
+            self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+            self.checkpoint_path.write_text("# Placeholder - Download actual model from Wav2Lip repository")
+            return False
+        
+        # Check if the checkpoint file is actually a model (not our placeholder)
+        if self.checkpoint_path.stat().st_size < 1000:  # Model should be much larger
+            self.logger.error("Wav2Lip checkpoint appears to be invalid (too small).")
+            self.logger.error("Please download the actual model from:")
+            self.logger.error("https://github.com/Rudrabha/Wav2Lip#getting-the-weights")
+            self.logger.error(f"Save it to: {self.checkpoint_path}")
+            return False
+        
+        self.logger.info("✅ Wav2Lip setup completed successfully")
+        return True
     
     def create_lipsync_videos(self, script_path: str) -> bool:
         """
@@ -58,6 +84,13 @@ class LipSyncEngine:
         Returns:
             bool: Success status
         """
+        if not self.wav2lip_ready:
+            self.logger.error("❌ Wav2Lip is not ready. Cannot create lip-sync videos.")
+            self.logger.error("Please download the required model first:")
+            self.logger.error("https://github.com/Rudrabha/Wav2Lip#getting-the-weights")
+            self.logger.error(f"Save it to: {self.config['paths']['wav2lip_checkpoint']}")
+            return False
+            
         try:
             # Load script
             with open(script_path, 'r') as f:
@@ -193,34 +226,68 @@ class LipSyncEngine:
     
     def run_wav2lip(self, speaker_path: Path, audio_path: Path, output_path: Path) -> bool:
         """
-        Run Wav2Lip inference.
+        Run Wav2Lip inference with GPU acceleration when available.
         """
         try:
-            # Simple command that works
+            import sys
+            # Build command with GPU/CPU settings
             cmd = [
-                "python3", "inference.py",
+                sys.executable, "inference.py",
                 "--checkpoint_path", "checkpoints/wav2lip_gan.pth",
                 "--face", f"../../{speaker_path}",
                 "--audio", f"../../{audio_path}",
                 "--outfile", f"../../{output_path}"
             ]
             
+            # Add batch size and quality settings
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                # Use GPU with optimal batch size
+                batch_size = self.gpu_manager.get_optimal_batch_size()
+                cmd.extend(["--wav2lip_batch_size", str(batch_size)])
+                
+                # Memory monitoring
+                self.gpu_manager.monitor_memory("before Wav2Lip")
+                self.logger.info(f"🚀 Running Wav2Lip on {self.gpu_manager.device_name} (batch_size={batch_size})")
+            else:
+                # Use CPU with smaller batch size
+                cmd.extend(["--wav2lip_batch_size", "16"])
+                self.logger.info("🔄 Running Wav2Lip on CPU")
+            
+            # Add quality settings from config
+            if self.config['processing'].get('max_resolution'):
+                # Use resize_factor to control output resolution
+                cmd.extend(["--resize_factor", "1"])
+            
             # Run command
             self.logger.info(f"Running Wav2Lip for {output_path.name}...")
+            
+            # Set environment for subprocess
+            env = os.environ.copy()
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                env['CUDA_VISIBLE_DEVICES'] = str(self.device).split(':')[-1] if ':' in str(self.device) else '0'
             
             result = subprocess.run(
                 cmd,
                 cwd=str(self.wav2lip_path),
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=600,  # Increased timeout for GPU processing
+                env=env
             )
             
+            # Monitor GPU memory after processing
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                self.gpu_manager.monitor_memory("after Wav2Lip")
+            
             if result.returncode == 0:
-                self.logger.info(f"Successfully created lip-sync video: {output_path}")
+                self.logger.info(f"✅ Successfully created lip-sync video: {output_path}")
                 return True
             else:
-                self.logger.error(f"Wav2Lip failed: {result.stderr}")
+                self.logger.error(f"❌ Wav2Lip failed: {result.stderr}")
+                # If GPU failed, try CPU fallback
+                if self.gpu_manager and self.gpu_manager.is_gpu_available and self.config['gpu_settings'].get('fallback_to_cpu', True):
+                    self.logger.info("🔄 Retrying with CPU fallback...")
+                    return self._run_wav2lip_cpu_fallback(speaker_path, audio_path, output_path)
                 return False
                 
         except subprocess.TimeoutExpired:
@@ -228,6 +295,40 @@ class LipSyncEngine:
             return False
         except Exception as e:
             self.logger.error(f"Error running Wav2Lip: {e}")
+            return False
+    
+    def _run_wav2lip_cpu_fallback(self, speaker_path: Path, audio_path: Path, output_path: Path) -> bool:
+        """
+        Run Wav2Lip inference with CPU fallback.
+        """
+        try:
+            import sys
+            cmd = [
+                sys.executable, "inference.py",
+                "--checkpoint_path", "checkpoints/wav2lip_gan.pth",
+                "--face", f"../../{speaker_path}",
+                "--audio", f"../../{audio_path}",
+                "--outfile", f"../../{output_path}",
+                "--wav2lip_batch_size", "8"
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                cwd=str(self.wav2lip_path),
+                capture_output=True,
+                text=True,
+                timeout=900  # Longer timeout for CPU
+            )
+            
+            if result.returncode == 0:
+                self.logger.info(f"✅ Successfully created lip-sync video with CPU: {output_path}")
+                return True
+            else:
+                self.logger.error(f"❌ CPU fallback also failed: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error in CPU fallback: {e}")
             return False
     
     def post_process_lipsync(self, video_path: Path, segment: Dict):

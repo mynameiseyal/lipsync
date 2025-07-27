@@ -10,15 +10,16 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 import subprocess
-from moviepy.editor import (VideoFileClip, concatenate_videoclips, 
+from moviepy import (VideoFileClip, concatenate_videoclips, 
                            CompositeVideoClip, TextClip, ColorClip)
 from tqdm import tqdm
 
 class VideoAssembler:
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json", gpu_manager=None):
         """Initialize Video Assembler with configuration."""
         self.config = self.load_config(config_path)
         self.setup_logging()
+        self.gpu_manager = gpu_manager
         
     def load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file."""
@@ -392,7 +393,7 @@ class VideoAssembler:
     def write_final_video(self, video: VideoFileClip, output_path: Path, 
                          video_settings: Dict):
         """
-        Write the final video to file.
+        Write the final video to file with GPU acceleration when available.
         
         Args:
             video: Final assembled video
@@ -405,21 +406,84 @@ class VideoAssembler:
             self.logger.info(f"Video resolution: {video.size}")
             self.logger.info(f"Video FPS: {video.fps}")
             
-            # Write video with optimal settings
-            video.write_videofile(
-                str(output_path),
-                codec=video_settings.get('codec', 'libx264'),
-                bitrate=video_settings.get('bitrate', '5000k'),
-                audio_codec='aac',
-                temp_audiofile='temp/temp_final_audio.m4a',
-                remove_temp=True,
-                verbose=False,
-                logger=None,
-                preset='medium',
-                ffmpeg_params=['-crf', '23']
-            )
+            # Select codec and encoding parameters based on GPU availability
+            if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                self.logger.info("🚀 Using GPU-accelerated video encoding")
+                
+                # GPU-optimized encoding settings
+                codec = video_settings.get('gpu_codec', 'h264_nvenc')  # NVIDIA GPU encoder
+                preset = 'fast'  # GPU preset
+                
+                # GPU-specific FFmpeg parameters
+                ffmpeg_params = [
+                    '-preset', preset,
+                    '-rc', 'vbr',
+                    '-cq', '23',
+                    '-b:v', video_settings.get('bitrate', '5000k'),
+                    '-maxrate', video_settings.get('max_bitrate', '8000k'),
+                    '-bufsize', video_settings.get('buffer_size', '10000k')
+                ]
+                
+                # Monitor GPU memory
+                self.gpu_manager.monitor_memory("before video encoding")
+                
+            else:
+                self.logger.info("🔄 Using CPU video encoding")
+                
+                # CPU encoding settings
+                codec = video_settings.get('codec', 'libx264')
+                preset = 'medium'
+                
+                # CPU-optimized FFmpeg parameters
+                ffmpeg_params = [
+                    '-preset', preset,
+                    '-crf', '23',
+                    '-threads', str(self.config.get('cpu_threads', 4))
+                ]
             
-            self.logger.info(f"Final video written successfully: {output_path}")
+            try:
+                # Write video with selected settings
+                video.write_videofile(
+                    str(output_path),
+                    codec=codec,
+                    bitrate=video_settings.get('bitrate', '5000k'),
+                    audio_codec='aac',
+                    temp_audiofile='temp/temp_final_audio.m4a',
+                    remove_temp=True,
+                    verbose=False,
+                    logger=None,
+                    ffmpeg_params=ffmpeg_params
+                )
+                
+                # Monitor GPU memory after encoding
+                if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                    self.gpu_manager.monitor_memory("after video encoding")
+                
+                self.logger.info(f"✅ Final video written successfully: {output_path}")
+                
+            except Exception as encoding_error:
+                # Fallback to CPU encoding if GPU encoding fails
+                if self.gpu_manager and self.gpu_manager.is_gpu_available:
+                    self.logger.warning(f"GPU encoding failed: {encoding_error}")
+                    self.logger.info("🔄 Falling back to CPU encoding")
+                    
+                    # CPU fallback settings
+                    video.write_videofile(
+                        str(output_path),
+                        codec='libx264',
+                        bitrate=video_settings.get('bitrate', '5000k'),
+                        audio_codec='aac',
+                        temp_audiofile='temp/temp_final_audio.m4a',
+                        remove_temp=True,
+                        verbose=False,
+                        logger=None,
+                        preset='medium',
+                        ffmpeg_params=['-crf', '23']
+                    )
+                    
+                    self.logger.info(f"✅ Final video written with CPU fallback: {output_path}")
+                else:
+                    raise encoding_error
             
         except Exception as e:
             self.logger.error(f"Error writing final video: {e}")
