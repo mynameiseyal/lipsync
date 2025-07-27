@@ -23,6 +23,7 @@
     "engine": "neural",
     "fallback_engine": "gtts",
     "default_language": "en",
+    "default_provider": "coqui",
     "neural_model": "tts_models/en/ljspeech/vits",
     "available_models": [
       "tts_models/en/ljspeech/vits",
@@ -31,6 +32,51 @@
       "tts_models/en/ljspeech/glow-tts",
       "tts_models/en/sam/tacotron-DDC"
     ],
+    "voice_providers": {
+      "coqui": {
+        "enabled": true,
+        "models": {
+          "male": [
+            "tts_models/en/vctk/vits",
+            "tts_models/en/sam/tacotron-DDC",
+            "tts_models/en/ljspeech/tacotron2-DDC"
+          ],
+          "female": [
+            "tts_models/en/ljspeech/vits",
+            "tts_models/en/ljspeech/glow-tts",
+            "tts_models/en/vctk/vits"
+          ]
+        }
+      },
+      "elevenlabs": {
+        "enabled": false,
+        "voices": {
+          "male": ["Adam", "Antoni", "Arnold", "Clyde", "Dom", "Josh", "Sam"],
+          "female": ["Bella", "Charlotte", "Dorothea", "Emily", "Grace", "Rachel", "Sarah"]
+        }
+      },
+      "azure": {
+        "enabled": false,
+        "voices": {
+          "male": ["en-US-GuyNeural", "en-US-DavisNeural", "en-GB-RyanNeural"],
+          "female": ["en-US-JennyNeural", "en-US-AriaNeural", "en-GB-SoniaNeural"]
+        }
+      },
+      "google": {
+        "enabled": false,
+        "voices": {
+          "male": ["en-US-Standard-B", "en-US-Wavenet-B", "en-US-Wavenet-D"],
+          "female": ["en-US-Standard-A", "en-US-Wavenet-A", "en-US-Wavenet-C"]
+        }
+      },
+      "amazon": {
+        "enabled": false,
+        "voices": {
+          "male": ["Matthew", "Justin", "Kevin", "Joey"],
+          "female": ["Joanna", "Salli", "Kendra", "Kimberly"]
+        }
+      }
+    },
     "speed_factor": 1.0,
     "volume_factor": 1.0,
     "gpu_batch_size": 8

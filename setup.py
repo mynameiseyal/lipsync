@@ -68,17 +68,70 @@ def setup_wav2lip():
     else:
         logger.info("✅ Wav2Lip repository already exists")
     
+    # Create checkpoints directory
+    checkpoints_dir = wav2lip_path / "checkpoints"
+    checkpoints_dir.mkdir(exist_ok=True)
+    
     # Download Wav2Lip model
-    wav2lip_model_path = models_dir / "wav2lip_gan.pth"
-    if not wav2lip_model_path.exists():
-        wav2lip_url = "https://iiitaphyd-my.sharepoint.com/personal/radrabha_m_research_iiit_ac_in/_layouts/15/download.aspx?share=EdjI7bZlgApMqsVoEUUXpLsBxqXbn5z8VTmoxp2pgHDtDw"
+    wav2lip_model_path = checkpoints_dir / "wav2lip_gan.pth"
+    if not wav2lip_model_path.exists() or wav2lip_model_path.stat().st_size < 1000000:  # Less than 1MB
         logger.info("Downloading Wav2Lip model (this may take a while)...")
-        success = download_file(wav2lip_url, wav2lip_model_path, "Wav2Lip model")
+        
+        # Try multiple download methods
+        download_methods = [
+            {
+                "name": "Direct download from Hugging Face",
+                "url": "https://huggingface.co/datasets/rudrabha/wav2lip/resolve/main/wav2lip_gan.pth",
+                "method": "direct"
+            },
+            {
+                "name": "Google Drive via gdown",
+                "url": "1IWJBJgrX3aPz3CkEBrC0XjzqJ_8V8h",
+                "method": "gdown"
+            }
+        ]
+        
+        success = False
+        for method in download_methods:
+            logger.info(f"Trying {method['name']}...")
+            
+            if method["method"] == "direct":
+                success = download_file(method["url"], wav2lip_model_path, "Wav2Lip model")
+            elif method["method"] == "gdown":
+                try:
+                    # Install gdown if not available
+                    run_command([sys.executable, "-m", "pip", "install", "gdown"], check=False)
+                    run_command(["gdown", method["url"], "-O", str(wav2lip_model_path)], check=False)
+                    if wav2lip_model_path.exists() and wav2lip_model_path.stat().st_size > 1000000:
+                        success = True
+                        logger.info("✅ Downloaded using gdown")
+                    else:
+                        logger.warning("❌ gdown download failed or file too small")
+                except Exception as e:
+                    logger.warning(f"❌ gdown method failed: {e}")
+            
+            if success:
+                break
+        
         if not success:
             logger.warning("❌ Could not download Wav2Lip model automatically")
-            logger.info("Please download manually from:")
-            logger.info("https://github.com/Rudrabha/Wav2Lip#getting-the-weights")
-            logger.info(f"Save as: {wav2lip_model_path}")
+            logger.info("Please download manually using one of these methods:")
+            logger.info("")
+            logger.info("Method 1: Download from Google Drive")
+            logger.info("1. Visit: https://drive.google.com/file/d/1IWJBJgrX3aPz3CkEBrC0XjzqJ_8V8h/view?usp=sharing")
+            logger.info("2. Download the file")
+            logger.info("3. Rename it to 'wav2lip_gan.pth'")
+            logger.info(f"4. Place it in: {wav2lip_model_path}")
+            logger.info("")
+            logger.info("Method 2: Use gdown command")
+            logger.info(f"gdown 1IWJBJgrX3aPz3CkEBrC0XjzqJ_8V8h -O {wav2lip_model_path}")
+            logger.info("")
+            logger.info("Method 3: Download from Hugging Face")
+            logger.info("1. Visit: https://huggingface.co/datasets/rudrabha/wav2lip/blob/main/wav2lip_gan.pth")
+            logger.info("2. Click 'Download' button")
+            logger.info(f"3. Place it in: {wav2lip_model_path}")
+            logger.info("")
+            logger.info("Expected file size: ~116MB")
     else:
         logger.info("✅ Wav2Lip model already exists")
     
@@ -192,6 +245,7 @@ def check_system_requirements():
         logger.info("✅ FFmpeg available")
     except:
         logger.warning("⚠️  FFmpeg not found - install for better video processing")
+        logger.info("Install with: brew install ffmpeg (macOS) or apt install ffmpeg (Ubuntu)")
     
     logger.info("✅ System requirements check completed")
     return True

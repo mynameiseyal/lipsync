@@ -1,0 +1,14 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "speaker": "Kobi.png",
+      "text": "Thank you team for your efforts!",
+      "duration": 3.0,
+      "background": "Eyal.jpg"
+    }
+  ],
+  "audio_settings": {
+    "voice_gender": "male"
+  }
+} 

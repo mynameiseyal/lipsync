@@ -1,0 +1,60 @@
+{
+  "project_name": "Male and Female Voice Demo",
+  "output_resolution": [1280, 720],
+  "fps": 25,
+  "segments": [
+    {
+      "id": 1,
+      "speaker": "speaker1.jpg",
+      "background": "background1.jpg",
+      "text": "Hello everyone! I'm the male speaker using Coqui TTS. This voice is generated using the VCTK multi-speaker model, which provides a natural male voice for our lip-sync video.",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 2,
+      "speaker": "speaker2.jpg",
+      "background": "background2.jpg",
+      "text": "And I'm the female speaker! I'm using the LJSpeech VITS model, which creates a clear and natural female voice. Notice how different our voices sound while maintaining high quality.",
+      "voice_model": "tts_models/en/ljspeech/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 3,
+      "speaker": "speaker1.jpg",
+      "background": "background1.jpg",
+      "text": "We can also use different male voice models. This is the SAM Tacotron model, which has a slightly different character and tone compared to the VCTK model.",
+      "voice_model": "tts_models/en/sam/tacotron-DDC",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 4,
+      "speaker": "speaker2.jpg",
+      "background": "background2.jpg",
+      "text": "And I can switch to the Glow-TTS model for a faster, more efficient female voice generation. Each model has its own unique characteristics and processing speed.",
+      "voice_model": "tts_models/en/ljspeech/glow-tts",
+      "speaker_position": "center",
+      "background_style": "full"
+    }
+  ],
+  "transitions": {
+    "type": "crossfade",
+    "duration": 0.5,
+    "style": "smooth"
+  },
+  "audio_settings": {
+    "voice_provider": "coqui",
+    "voice_gender": "auto",
+    "sample_rate": 22050,
+    "normalize": true,
+    "noise_reduction": true
+  },
+  "video_settings": {
+    "quality": "high",
+    "codec": "libx264",
+    "bitrate": "5000k"
+  }
+} 

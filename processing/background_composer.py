@@ -101,9 +101,15 @@ class BackgroundComposer:
                 self.logger.error(f"Lip-sync video not found: {lipsync_path}")
                 return False
             
-            if not background_path.exists():
-                self.logger.error(f"Background image not found: {background_path}")
-                return False
+            # Check if background is required
+            if background_file and background_file.lower() != 'none':
+                if not background_path.exists():
+                    self.logger.error(f"Background image not found: {background_path}")
+                    return False
+            else:
+                # No background required - just copy the lipsync video
+                self.logger.info(f"No background specified for segment {segment_id}, using plain lipsync video")
+                return self.copy_lipsync_video(lipsync_path, output_path)
             
             # Load video and background
             lipsync_clip = VideoFileClip(str(lipsync_path))
@@ -131,7 +137,6 @@ class BackgroundComposer:
                 audio_codec='aac',
                 temp_audiofile='temp/temp_audio.m4a',
                 remove_temp=True,
-                verbose=False,
                 logger=None
             )
             
@@ -144,6 +149,32 @@ class BackgroundComposer:
             
         except Exception as e:
             self.logger.error(f"Error composing single video: {e}")
+            return False
+    
+    def copy_lipsync_video(self, lipsync_path: Path, output_path: Path) -> bool:
+        """
+        Copy lipsync video without background processing.
+        
+        Args:
+            lipsync_path: Path to the input lipsync video
+            output_path: Path to the output video
+            
+        Returns:
+            bool: Success status
+        """
+        try:
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Simply copy the file (or re-encode if needed for consistency)
+            import shutil
+            shutil.copy2(lipsync_path, output_path)
+            
+            self.logger.info(f"Copied lipsync video: {output_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error copying lipsync video: {e}")
             return False
     
     def compose_full_background(self, video_clip: VideoFileClip, background_path: Path, 
@@ -168,8 +199,7 @@ class BackgroundComposer:
             background_img = background_img.resize(target_size, Image.Resampling.LANCZOS)
             
             # Create background clip
-            background_clip = ImageClip(np.array(background_img))
-            background_clip = background_clip.set_duration(video_clip.duration)
+            background_clip = ImageClip(np.array(background_img), duration=video_clip.duration)
             
             # Remove background from speaker video
             speaker_clip = self.remove_video_background(video_clip)
@@ -206,8 +236,7 @@ class BackgroundComposer:
             target_size = self.config['processing']['default_resolution']
             background_img = background_img.resize(target_size, Image.Resampling.LANCZOS)
             
-            background_clip = ImageClip(np.array(background_img))
-            background_clip = background_clip.set_duration(video_clip.duration)
+            background_clip = ImageClip(np.array(background_img), duration=video_clip.duration)
             
             # Apply green screen effect to speaker
             speaker_clip = self.apply_green_screen_effect(video_clip)
@@ -241,8 +270,7 @@ class BackgroundComposer:
             target_size = self.config['processing']['default_resolution']
             background_img = background_img.resize(target_size, Image.Resampling.LANCZOS)
             
-            background_clip = ImageClip(np.array(background_img))
-            background_clip = background_clip.set_duration(video_clip.duration)
+            background_clip = ImageClip(np.array(background_img), duration=video_clip.duration)
             
             # Resize speaker to smaller size (PiP)
             pip_ratio = self.config['background_settings'].get('speaker_size_ratio', 0.3)
@@ -299,7 +327,7 @@ class BackgroundComposer:
                     removed_bg = remove(pil_frame, session=session)
                     return np.array(removed_bg) / 255.0
                 
-                bg_removed_clip = video_clip.fl(remove_bg_frame_gpu)
+                bg_removed_clip = video_clip.fl_image(remove_bg_frame_gpu)
                 
                 # Monitor GPU memory after processing
                 self.gpu_manager.monitor_memory("after background removal")
@@ -316,7 +344,7 @@ class BackgroundComposer:
                     removed_bg = remove(pil_frame, session=session)
                     return np.array(removed_bg) / 255.0
                 
-                bg_removed_clip = video_clip.fl(remove_bg_frame_cpu)
+                bg_removed_clip = video_clip.fl_image(remove_bg_frame_cpu)
             
             return bg_removed_clip
             
@@ -333,7 +361,7 @@ class BackgroundComposer:
                         removed_bg = remove(pil_frame)
                         return np.array(removed_bg) / 255.0
                     
-                    return video_clip.fl(remove_bg_frame_fallback)
+                    return video_clip.fl_image(remove_bg_frame_fallback)
                 except Exception as fallback_error:
                     self.logger.warning(f"CPU fallback also failed: {fallback_error}")
             
@@ -362,7 +390,7 @@ class BackgroundComposer:
                 frame_with_alpha = np.dstack([frame, alpha])
                 return frame_with_alpha
             
-            return video_clip.fl(green_screen_frame)
+            return video_clip.fl_image(green_screen_frame)
             
         except Exception as e:
             self.logger.warning(f"Green screen effect failed: {e}")
@@ -382,18 +410,9 @@ class BackgroundComposer:
             Positioned video clip
         """
         try:
-            if position == 'center':
-                return speaker_clip.set_position('center')
-            elif position == 'left':
-                return speaker_clip.set_position(('left', 'center'))
-            elif position == 'right':
-                return speaker_clip.set_position(('right', 'center'))
-            elif position == 'top':
-                return speaker_clip.set_position(('center', 'top'))
-            elif position == 'bottom':
-                return speaker_clip.set_position(('center', 'bottom'))
-            else:
-                return speaker_clip.set_position('center')
+            # In newer MoviePy versions, positioning is handled in CompositeVideoClip
+            # Return the clip as-is, positioning will be handled by the caller
+            return speaker_clip
                 
         except Exception as e:
             self.logger.warning(f"Speaker positioning failed: {e}")
@@ -474,13 +493,10 @@ class BackgroundComposer:
             target_size = self.config['processing']['default_resolution']
             background_img = background_img.resize(target_size, Image.Resampling.LANCZOS)
             
-            background_clip = ImageClip(np.array(background_img))
-            background_clip = background_clip.set_duration(video_clip.duration)
+            background_clip = ImageClip(np.array(background_img), duration=video_clip.duration)
             
-            # Simple center overlay
-            speaker_clip = video_clip.set_position('center')
-            
-            return CompositeVideoClip([background_clip, speaker_clip])
+            # Simple center overlay - positioning handled by CompositeVideoClip
+            return CompositeVideoClip([background_clip, video_clip])
             
         except Exception as e:
             self.logger.error(f"Simple overlay failed: {e}")

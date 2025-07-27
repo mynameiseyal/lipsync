@@ -281,9 +281,14 @@ class LipSyncEngine:
             
             if result.returncode == 0:
                 self.logger.info(f"✅ Successfully created lip-sync video: {output_path}")
+                # Log Wav2Lip output for debugging
+                if result.stdout:
+                    self.logger.info(f"Wav2Lip output: {result.stdout}")
                 return True
             else:
                 self.logger.error(f"❌ Wav2Lip failed: {result.stderr}")
+                if result.stdout:
+                    self.logger.error(f"Wav2Lip stdout: {result.stdout}")
                 # If GPU failed, try CPU fallback
                 if self.gpu_manager and self.gpu_manager.is_gpu_available and self.config['gpu_settings'].get('fallback_to_cpu', True):
                     self.logger.info("🔄 Retrying with CPU fallback...")

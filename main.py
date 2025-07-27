@@ -17,6 +17,7 @@ from processing.tts_generator import TTSGenerator
 from processing.lipsync_engine import LipSyncEngine
 from processing.background_composer import BackgroundComposer
 from processing.video_assembler import VideoAssembler
+from processing.caption_generator import CaptionGenerator
 from processing.gpu_utils import setup_gpu_environment
 
 class MultiSpeakerPipeline:
@@ -33,6 +34,7 @@ class MultiSpeakerPipeline:
         self.tts_generator = TTSGenerator(config_path, self.gpu_manager)
         self.lipsync_engine = LipSyncEngine(config_path, self.gpu_manager)
         self.background_composer = BackgroundComposer(config_path, self.gpu_manager)
+        self.caption_generator = CaptionGenerator(config_path, self.gpu_manager)
         self.video_assembler = VideoAssembler(config_path, self.gpu_manager)
         
         self.logger.info("Multi-Speaker Pipeline initialized")
@@ -105,11 +107,12 @@ class MultiSpeakerPipeline:
                     self.logger.error(f"Speaker file not found: {speaker_path}")
                     return False
                 
-                # Check background file exists
-                background_path = Path(f"input/backgrounds/{segment['background']}")
-                if not background_path.exists():
-                    self.logger.error(f"Background file not found: {background_path}")
-                    return False
+                # Check background file exists (unless it's "none")
+                if segment['background'].lower() != 'none':
+                    background_path = Path(f"input/backgrounds/{segment['background']}")
+                    if not background_path.exists():
+                        self.logger.error(f"Background file not found: {background_path}")
+                        return False
                 
                 # Validate text content
                 if not segment['text'].strip():
@@ -177,9 +180,19 @@ class MultiSpeakerPipeline:
             else:
                 self.logger.info("⏭️  Skipping background composition")
             
-            # Step 4: Assemble final video
+            # Step 4: Add captions
+            if 'captions' not in skip_steps:
+                self.logger.info("📝 Step 4: Adding captions...")
+                if not self.caption_generator.add_captions_to_videos(script_path):
+                    self.logger.error("❌ Caption generation failed")
+                    return False
+                self.logger.info("✅ Caption generation completed")
+            else:
+                self.logger.info("⏭️  Skipping caption generation")
+            
+            # Step 5: Assemble final video
             if 'assembly' not in skip_steps:
-                self.logger.info("🎞️  Step 4: Assembling final video...")
+                self.logger.info("🎞️  Step 5: Assembling final video...")
                 if not self.video_assembler.assemble_final_video(script_path, output_filename):
                     self.logger.error("❌ Video assembly failed")
                     return False

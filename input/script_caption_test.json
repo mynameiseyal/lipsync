@@ -1,0 +1,48 @@
+{
+  "project_name": "Caption Test",
+  "output_resolution": [1280, 720],
+  "fps": 25,
+  "segments": [
+    {
+      "id": 1,
+      "speaker": "Trump.jpg",
+      "background": "none",
+      "text": "This is a caption test. You should see this text displayed at the bottom of the video with a professional appearance.",
+      "speaker_position": "center"
+    }
+  ],
+  "transitions": {
+    "type": "crossfade",
+    "duration": 0.5,
+    "style": "smooth"
+  },
+  "audio_settings": {
+    "voice_provider": "enhanced_system",
+    "voice_gender": "male",
+    "voice_name": "Daniel",
+    "quality_mode": "enhanced",
+    "sample_rate": 44100,
+    "normalize": true,
+    "noise_reduction": true
+  },
+  "video_settings": {
+    "quality": "high",
+    "codec": "libx264",
+    "bitrate": "5000k"
+  },
+  "caption_settings": {
+    "enabled": true,
+    "position": "bottom",
+    "font": "Arial-Bold",
+    "fontsize": 48,
+    "color": "white",
+    "stroke_color": "black",
+    "stroke_width": 3,
+    "background": true,
+    "background_color": "black",
+    "background_opacity": 0.8,
+    "margin_bottom": 60,
+    "max_width": 0.85,
+    "animation": "fade"
+  }
+} 

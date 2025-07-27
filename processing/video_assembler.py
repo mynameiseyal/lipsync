@@ -109,7 +109,7 @@ class VideoAssembler:
     
     def load_video_clips(self, segments: List[Dict]) -> List[VideoFileClip]:
         """
-        Load all composed video clips.
+        Load all composed video clips (prefer captioned if available).
         
         Args:
             segments: List of segment configurations
@@ -122,10 +122,19 @@ class VideoAssembler:
         try:
             for segment in tqdm(segments, desc="Loading video clips"):
                 segment_id = segment['id']
-                video_path = Path(f"temp/composed/segment_{segment_id}.mp4")
                 
-                if not video_path.exists():
-                    self.logger.error(f"Composed video not found: {video_path}")
+                # Check for captioned video first, then fall back to composed
+                captioned_path = Path(f"temp/captioned/segment_{segment_id}.mp4")
+                composed_path = Path(f"temp/composed/segment_{segment_id}.mp4")
+                
+                if captioned_path.exists():
+                    video_path = captioned_path
+                    self.logger.info(f"Using captioned video for segment {segment_id}")
+                elif composed_path.exists():
+                    video_path = composed_path
+                    self.logger.info(f"Using composed video for segment {segment_id}")
+                else:
+                    self.logger.error(f"No video found for segment {segment_id}")
                     continue
                 
                 clip = VideoFileClip(str(video_path))
@@ -450,7 +459,6 @@ class VideoAssembler:
                     audio_codec='aac',
                     temp_audiofile='temp/temp_final_audio.m4a',
                     remove_temp=True,
-                    verbose=False,
                     logger=None,
                     ffmpeg_params=ffmpeg_params
                 )
@@ -475,7 +483,6 @@ class VideoAssembler:
                         audio_codec='aac',
                         temp_audiofile='temp/temp_final_audio.m4a',
                         remove_temp=True,
-                        verbose=False,
                         logger=None,
                         preset='medium',
                         ffmpeg_params=['-crf', '23']

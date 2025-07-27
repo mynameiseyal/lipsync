@@ -1,0 +1,40 @@
+{
+  "project_name": "Enhanced Voice Demo - No Background",
+  "output_resolution": [1280, 720],
+  "fps": 25,
+  "segments": [
+    {
+      "id": 1,
+      "speaker": "speaker1.jpg",
+      "background": "none",
+      "text": "Hello! I'm demonstrating the new enhanced voice system. This is a male voice using the Daniel British English voice with enhanced quality.",
+      "speaker_position": "center"
+    },
+    {
+      "id": 2,
+      "speaker": "speaker2.jpg", 
+      "background": "none",
+      "text": "And I'm using the Samantha American female voice with enhanced audio processing. Notice how clear and natural this sounds!",
+      "speaker_position": "center"
+    }
+  ],
+  "transitions": {
+    "type": "crossfade",
+    "duration": 0.5,
+    "style": "smooth"
+  },
+  "audio_settings": {
+    "voice_provider": "enhanced_system",
+    "voice_gender": "auto",
+    "voice_name": "Daniel",
+    "quality_mode": "ffmpeg_enhanced",
+    "sample_rate": 44100,
+    "normalize": true,
+    "noise_reduction": true
+  },
+  "video_settings": {
+    "quality": "high",
+    "codec": "libx264",
+    "bitrate": "5000k"
+  }
+} 

@@ -1,0 +1,95 @@
+{
+  "project_name": "Trump About Eyal - Ducati Dad",
+  "output_resolution": [1280, 720],
+  "fps": 25,
+  "segments": [
+    {
+      "id": 1,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "Ladies and gentlemen, let me tell you—nobody introduces people like I do, believe me. Today, we have a tremendous individual. Some people say, \"Wow, how does he do it?\" And I say, \"He does it better than anybody!\"",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 2,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "First of all, folks, this man rides a red Ducati. That's right—a real bike, not some scooter. Fast, powerful, the best—some say the Ferrari of motorcycles. And let me tell you, when he's on that Ducati, even the wind tries to keep up.",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 3,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "Now, this guy doesn't just settle for regular coffee. Oh no. He appreciates a good coffee, and when I say good, I mean tremendous. He's practically turned it into an art form. People line up for his coffee. I'd call it the best in the business. If we put his coffee in Trump Tower, it would be a huge success—maybe the best, who knows!",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 4,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "But he's not just a caffeine genius—he loves the outdoors! Camping, adventuring, being out in nature. He doesn't just watch Discovery Channel, folks—he lives it. He's like Bear Grylls, but with better hair, OK?",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 5,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "And let's not forget—he's the leader of four amazing little boys. That's right, four. He's running a household with more energy than most people run companies. It's a full-time job, folks. You think running a campaign is tough? Try putting four boys to bed!",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    },
+    {
+      "id": 6,
+      "speaker": "Trump.jpg",
+      "background": "Eyal.jpg",
+      "text": "So please, give a big round of applause for our very own Ducati-driving, coffee-loving, tent-pitching, dad-of-the-year!",
+      "voice_model": "tts_models/en/vctk/vits",
+      "speaker_position": "center",
+      "background_style": "full"
+    }
+  ],
+  "transitions": {
+    "type": "crossfade",
+    "duration": 0.5,
+    "style": "smooth"
+  },
+  "audio_settings": {
+    "voice_provider": "enhanced_system",
+    "voice_gender": "male",
+    "voice_name": "Daniel",
+    "quality_mode": "ffmpeg_enhanced",
+    "sample_rate": 44100,
+    "normalize": true,
+    "noise_reduction": true
+  },
+  "video_settings": {
+    "quality": "high",
+    "codec": "libx264",
+    "bitrate": "5000k"
+  },
+  "caption_settings": {
+    "enabled": true,
+    "position": "bottom",
+    "font": "Arial-Bold",
+    "fontsize": 44,
+    "color": "white",
+    "stroke_color": "black",
+    "stroke_width": 3,
+    "background": true,
+    "background_color": "black",
+    "background_opacity": 0.8,
+    "margin_bottom": 60,
+    "max_width": 0.85,
+    "animation": "fade"
+  }
+} 

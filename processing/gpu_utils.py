@@ -28,8 +28,19 @@ class GPUManager:
     def _detect_and_setup_device(self):
         """Detect available GPU and setup device."""
         try:
+            # Check if MPS (Apple Silicon) is available first
+            if torch.backends.mps.is_available() and self.config['gpu_settings']['enabled']:
+                self.is_gpu_available = True
+                self.device = torch.device('mps')
+                self.device_name = "Apple M3 Pro (MPS)"
+                self.memory_available = 0  # MPS doesn't expose memory info easily
+                
+                self.logger.info(f"[MPS] Apple Silicon GPU initialized: {self.device_name}")
+                self.logger.info(f"   Device: {self.device}")
+                self.logger.info(f"   Using Metal Performance Shaders")
+                
             # Check if CUDA is available
-            if torch.cuda.is_available() and self.config['gpu_settings']['enabled']:
+            elif torch.cuda.is_available() and self.config['gpu_settings']['enabled']:
                 self.is_gpu_available = True
                 
                 # Get device count and select device
@@ -54,7 +65,7 @@ class GPUManager:
                 if memory_fraction < 1.0:
                     torch.cuda.set_per_process_memory_fraction(memory_fraction, device_id)
                 
-                self.logger.info(f"[GPU] GPU initialized: {self.device_name}")
+                self.logger.info(f"[CUDA] GPU initialized: {self.device_name}")
                 self.logger.info(f"   Device: {self.device}")
                 self.logger.info(f"   Memory: {self.memory_available / 1e9:.1f} GB")
                 
@@ -118,7 +129,8 @@ class GPUManager:
             'device_name': self.device_name,
             'is_gpu': self.is_gpu_available,
             'memory_available': self.memory_available,
-            'cuda_available': torch.cuda.is_available()
+            'cuda_available': torch.cuda.is_available(),
+            'mps_available': torch.backends.mps.is_available()
         }
     
     def get_optimal_batch_size(self, base_batch_size: int = None) -> int:
@@ -161,15 +173,25 @@ class GPUManager:
     def cleanup(self):
         """Cleanup GPU resources."""
         if self.is_gpu_available:
-            torch.cuda.empty_cache()
-            self.logger.info("🧹 GPU memory cache cleared")
+            if str(self.device) == 'mps':
+                # MPS cleanup (if needed)
+                self.logger.info("🧹 MPS resources cleaned")
+            else:
+                # CUDA cleanup
+                torch.cuda.empty_cache()
+                self.logger.info("🧹 GPU memory cache cleared")
     
     def get_memory_usage(self) -> Tuple[float, float]:
         """Get current GPU memory usage in GB."""
         if self.is_gpu_available:
-            allocated = torch.cuda.memory_allocated() / 1e9
-            cached = torch.cuda.memory_reserved() / 1e9
-            return allocated, cached
+            if str(self.device) == 'mps':
+                # MPS doesn't expose memory info easily, return estimates
+                return 0.0, 0.0
+            else:
+                # CUDA memory info
+                allocated = torch.cuda.memory_allocated() / 1e9
+                cached = torch.cuda.memory_reserved() / 1e9
+                return allocated, cached
         return 0.0, 0.0
     
     def monitor_memory(self, operation_name: str = ""):
